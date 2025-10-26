@@ -36,7 +36,8 @@ async function reportErrorToVly(errorData: {
   lineno?: number;
   colno?: number;
 }) {
-  if (!import.meta.env.VITE_VLY_APP_ID) {
+  // Skip error reporting if Vly monitoring is not configured
+  if (!import.meta.env.VITE_VLY_APP_ID || !import.meta.env.VITE_VLY_MONITORING_URL) {
     return;
   }
 
@@ -61,6 +62,8 @@ function ErrorDialog({
   error: GenericError;
   setError: (error: GenericError | null) => void;
 }) {
+  const showVlyLink = import.meta.env.VITE_VLY_APP_ID;
+
   return (
     <Dialog
       defaultOpen={true}
@@ -72,8 +75,8 @@ function ErrorDialog({
         <DialogHeader>
           <DialogTitle>Runtime Error</DialogTitle>
         </DialogHeader>
-        A runtime error occurred. Open the vly editor to automatically debug the
-        error.
+        A runtime error occurred.
+        {showVlyLink && " Open the vly editor to automatically debug the error."}
         <div className="mt-4">
           <Collapsible>
             <CollapsibleTrigger>
@@ -89,14 +92,19 @@ function ErrorDialog({
           </Collapsible>
         </div>
         <DialogFooter>
-          <a
-            href={`https://vly.ai/project/${import.meta.env.VITE_VLY_APP_ID}`}
-            target="_blank"
-          >
-            <Button>
-              <ExternalLink /> Open editor
-            </Button>
-          </a>
+          {showVlyLink && (
+            <a
+              href={`https://vly.ai/project/${import.meta.env.VITE_VLY_APP_ID}`}
+              target="_blank"
+            >
+              <Button>
+                <ExternalLink /> Open editor
+              </Button>
+            </a>
+          )}
+          <Button onClick={() => setError(null)} variant="outline">
+            Close
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
