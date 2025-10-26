@@ -1,6 +1,4 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Loader2 } from "lucide-react";
@@ -38,9 +36,9 @@ export default function Dashboard() {
       <motion.main
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex-1 p-6 overflow-auto"
+        className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto md:ml-0"
       >
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
           <CalendarView />
           <TaskList />
           <ReminderList />

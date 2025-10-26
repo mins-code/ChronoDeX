@@ -85,11 +85,11 @@ export function TaskSection({
 
   return (
     <div className="space-y-3">
-      <h2 className="text-2xl font-bold text-white">{title}</h2>
+      <h2 className="text-xl sm:text-2xl font-bold text-white">{title}</h2>
       
       {tasks.length === 0 ? (
-        <Card className="p-12 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl text-center">
-          <p className="text-white/60 text-lg">{emptyMessage}</p>
+        <Card className="p-8 sm:p-12 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl text-center">
+          <p className="text-white/60 text-base sm:text-lg">{emptyMessage}</p>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -100,7 +100,7 @@ export function TaskSection({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className="p-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl hover:bg-white/20 transition-all">
+              <Card className="p-3 sm:p-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl hover:bg-white/20 transition-all">
                 {editingTaskId === task._id && editForm ? (
                   <div className="space-y-3">
                     <Input
@@ -115,15 +115,15 @@ export function TaskSection({
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                       placeholder="Task description"
                     />
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Input
                         type="date"
                         value={editForm.dueDate}
                         onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white"
+                        className="bg-white/10 border-white/20 text-white flex-1"
                       />
                       <Select value={editForm.priority} onValueChange={(value) => setEditForm({ ...editForm, priority: value as any })}>
-                        <SelectTrigger className="w-[140px] bg-white/10 border-white/20 text-white">
+                        <SelectTrigger className="bg-white/10 border-white/20 text-white flex-1 sm:w-[140px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -133,7 +133,7 @@ export function TaskSection({
                         </SelectContent>
                       </Select>
                       <Select value={editForm.status} onValueChange={(value) => setEditForm({ ...editForm, status: value as any })}>
-                        <SelectTrigger className="w-[140px] bg-white/10 border-white/20 text-white">
+                        <SelectTrigger className="bg-white/10 border-white/20 text-white flex-1 sm:w-[140px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -164,11 +164,11 @@ export function TaskSection({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="mt-1 text-white hover:bg-white/10"
+                      className="mt-1 text-white hover:bg-white/10 flex-shrink-0"
                       onClick={() => onToggleComplete(task._id, task.status)}
                     >
                       {task.status === "completed" ? (
@@ -178,18 +178,18 @@ export function TaskSection({
                       )}
                     </Button>
 
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h3
-                        className={`font-semibold text-white text-lg ${
+                        className={`font-semibold text-white text-base sm:text-lg break-words ${
                           task.status === "completed" ? "line-through opacity-60" : ""
                         }`}
                       >
                         {task.title}
                       </h3>
                       {task.description && (
-                        <p className="text-sm text-white/70 mt-1">{task.description}</p>
+                        <p className="text-xs sm:text-sm text-white/70 mt-1 break-words">{task.description}</p>
                       )}
-                      <div className="flex items-center gap-2 mt-3 flex-wrap">
+                      <div className="flex items-center gap-2 mt-2 sm:mt-3 flex-wrap">
                         <Badge className={getPriorityColor(task.priority)}>
                           {task.priority}
                         </Badge>
@@ -212,23 +212,25 @@ export function TaskSection({
                       </div>
                     </div>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-white/60 hover:text-blue-400 hover:bg-white/10"
-                      onClick={() => handleEditClick(task)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white/60 hover:text-blue-400 hover:bg-white/10"
+                        onClick={() => handleEditClick(task)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-white/60 hover:text-red-400 hover:bg-white/10"
-                      onClick={() => onDelete(task._id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white/60 hover:text-red-400 hover:bg-white/10"
+                        onClick={() => onDelete(task._id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </Card>

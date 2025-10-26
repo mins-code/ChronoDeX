@@ -171,14 +171,14 @@ export default function Tasks() {
       <motion.main
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex-1 p-6 overflow-auto"
+        className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto md:ml-0"
       >
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-white">All Tasks</h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">All Tasks</h1>
             <Button
               onClick={() => setShowTaskDialog(true)}
-              className="bg-white/20 hover:bg-white/30 text-white"
+              className="bg-white/20 hover:bg-white/30 text-white w-full sm:w-auto"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Task
@@ -186,31 +186,34 @@ export default function Tasks() {
           </div>
 
           {nextNotification && (
-            <Card className="p-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl mb-6">
-              <div className="flex items-center gap-3">
+            <Card className="p-3 sm:p-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl mb-4 sm:mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="p-2 rounded-lg bg-blue-500/20">
                   <Bell className="h-5 w-5 text-blue-200" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-white/80 text-sm font-semibold">Next Notification</p>
-                  <p className="text-white text-lg">
+                <div className="flex-1 min-w-0">
+                  <p className="text-white/80 text-xs sm:text-sm font-semibold">Next Notification</p>
+                  <p className="text-white text-sm sm:text-lg truncate">
                     {nextNotification.title} — due {getTimeUntil(nextNotification.dueDate)}
                   </p>
                 </div>
-                <Badge className={getPriorityColor(nextNotification.priority)}>
-                  {nextNotification.priority} priority
-                </Badge>
-                <div className="flex items-center gap-1 text-white/60 text-sm">
-                  <Clock className="h-4 w-4" />
-                  {new Date(nextNotification.dueDate).toLocaleString()}
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <Badge className={getPriorityColor(nextNotification.priority)}>
+                    {nextNotification.priority} priority
+                  </Badge>
+                  <div className="flex items-center gap-1 text-white/60 text-xs sm:text-sm">
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">{new Date(nextNotification.dueDate).toLocaleString()}</span>
+                    <span className="sm:hidden">{new Date(nextNotification.dueDate).toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
             </Card>
           )}
 
-          <Card className="p-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl mb-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
+          <Card className="p-3 sm:p-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl mb-4 sm:mb-6">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                 <Input
                   placeholder="Search tasks..."
@@ -220,9 +223,9 @@ export default function Tasks() {
                 />
               </div>
               
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                 <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as any)}>
-                  <SelectTrigger className="w-[140px] bg-white/10 border-white/20 text-white hover:bg-white/20 focus:ring-white/30">
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white hover:bg-white/20 focus:ring-white/30">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent className="backdrop-blur-xl bg-white/95 border-white/30 shadow-xl">
@@ -234,7 +237,7 @@ export default function Tasks() {
                 </Select>
 
                 <Select value={filterPriority} onValueChange={(value) => setFilterPriority(value as any)}>
-                  <SelectTrigger className="w-[140px] bg-white/10 border-white/20 text-white hover:bg-white/20 focus:ring-white/30">
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white hover:bg-white/20 focus:ring-white/30">
                     <SelectValue placeholder="All Priority" />
                   </SelectTrigger>
                   <SelectContent className="backdrop-blur-xl bg-white/95 border-white/30 shadow-xl">
@@ -246,7 +249,7 @@ export default function Tasks() {
                 </Select>
 
                 <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
-                  <SelectTrigger className="w-[180px] bg-white/10 border-white/20 text-white hover:bg-white/20 focus:ring-white/30">
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white hover:bg-white/20 focus:ring-white/30">
                     <SelectValue placeholder="Sort by..." />
                   </SelectTrigger>
                   <SelectContent className="backdrop-blur-xl bg-white/95 border-white/30 shadow-xl">
@@ -260,7 +263,7 @@ export default function Tasks() {
           </Card>
 
           {overduePrivateTasks.length > 0 && (
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <TaskSection
                 title="⚠️ Overdue Private Tasks"
                 tasks={overduePrivateTasks}
@@ -282,9 +285,9 @@ export default function Tasks() {
           />
 
           {groups && groups.length > 0 && (
-            <div className="mt-8">
+            <div className="mt-6 sm:mt-8">
               {overdueSharedTasks.length > 0 && (
-                <div className="mb-8">
+                <div className="mb-6 sm:mb-8">
                   <TaskSection
                     title="⚠️ Overdue Shared Tasks"
                     tasks={overdueSharedTasks}
@@ -308,8 +311,8 @@ export default function Tasks() {
           )}
 
           {deletedTasks.length > 0 && (
-            <Card className="mt-6 p-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl">
-              <div className="flex items-center justify-between">
+            <Card className="mt-4 sm:mt-6 p-3 sm:p-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-white">
                   <Undo2 className="h-4 w-4" />
                   <span className="text-sm">
@@ -319,7 +322,7 @@ export default function Tasks() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-white/80 hover:bg-white/10"
+                  className="text-white/80 hover:bg-white/10 w-full sm:w-auto"
                   onClick={() => setDeletedTasks([])}
                 >
                   Clear Stack

@@ -68,12 +68,12 @@ export function CalendarView() {
 
   return (
     <>
-      <Card className="p-6 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">
+      <Card className="p-3 sm:p-4 md:p-6 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">
             {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
           </h2>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="ghost"
               size="icon"
@@ -95,18 +95,20 @@ export function CalendarView() {
                 setSelectedDate(new Date());
                 setShowTaskDialog(true);
               }}
-              className="ml-4 bg-white/20 hover:bg-white/30 text-white"
+              className="ml-2 sm:ml-4 bg-white/20 hover:bg-white/30 text-white flex-1 sm:flex-none"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Task
+              <span className="hidden sm:inline">Add Task</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-            <div key={day} className="text-center text-white/60 font-semibold py-2">
-              {day}
+            <div key={day} className="text-center text-white/60 font-semibold py-1 sm:py-2 text-xs sm:text-sm">
+              <span className="hidden sm:inline">{day}</span>
+              <span className="sm:hidden">{day.charAt(0)}</span>
             </div>
           ))}
 
@@ -119,7 +121,7 @@ export function CalendarView() {
               <motion.div
                 key={index}
                 whileHover={{ scale: 1.05 }}
-                className={`min-h-24 p-2 rounded-lg backdrop-blur-sm cursor-pointer ${
+                className={`min-h-16 sm:min-h-20 md:min-h-24 p-1 sm:p-2 rounded-lg backdrop-blur-sm cursor-pointer ${
                   date
                     ? isToday
                       ? "bg-white/30 border-2 border-white/50"
@@ -135,7 +137,7 @@ export function CalendarView() {
               >
                 {date && (
                   <>
-                    <div className="text-white font-semibold mb-1">{date.getDate()}</div>
+                    <div className="text-white font-semibold mb-1 text-xs sm:text-sm">{date.getDate()}</div>
                     <div className="space-y-1">
                       {dayTasks.slice(0, 2).map((task) => (
                         <div
@@ -148,7 +150,8 @@ export function CalendarView() {
                               : "bg-green-500/30 text-white"
                           }`}
                         >
-                          {task.title}
+                          <span className="hidden sm:inline">{task.title}</span>
+                          <span className="sm:hidden">{task.title.substring(0, 8)}...</span>
                         </div>
                       ))}
                       {dayReminders.slice(0, 1).map((reminder) => (
@@ -156,12 +159,13 @@ export function CalendarView() {
                           key={reminder._id}
                           className="text-xs p-1 rounded truncate bg-blue-500/30 text-white"
                         >
-                          ⏰ {reminder.title}
+                          <span className="hidden sm:inline">⏰ {reminder.title}</span>
+                          <span className="sm:hidden">⏰</span>
                         </div>
                       ))}
                       {(dayTasks.length + dayReminders.length) > 3 && (
                         <div className="text-xs text-white/60">
-                          +{dayTasks.length + dayReminders.length - 3} more
+                          +{dayTasks.length + dayReminders.length - 3}
                         </div>
                       )}
                     </div>

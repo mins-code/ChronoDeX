@@ -93,11 +93,11 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="backdrop-blur-xl bg-white/10 border-white/20 text-white">
+      <DialogContent className="backdrop-blur-xl bg-white/10 border-white/20 text-white max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">Create New Task</DialogTitle>
+          <DialogTitle className="text-white text-lg sm:text-xl">Create New Task</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           <div>
             <Label htmlFor="title" className="text-white">Title</Label>
             <Input
@@ -207,11 +207,11 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
             )}
           </div>
 
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="ghost" onClick={onClose} className="text-white hover:bg-white/10">
+          <div className="flex flex-col sm:flex-row gap-2 justify-end">
+            <Button type="button" variant="ghost" onClick={onClose} className="text-white hover:bg-white/10 w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-white/20 hover:bg-white/30 text-white">
+            <Button type="submit" disabled={isLoading} className="bg-white/20 hover:bg-white/30 text-white w-full sm:w-auto">
               {isLoading ? "Creating..." : "Create Task"}
             </Button>
           </div>
