@@ -89,8 +89,7 @@ Shadcn primitives are located in the `src/components/ui` folder and should be us
 
 Your page component should go under the `src/pages` folder.
 
-
-When adding a page, update the react router configuration in `src/main.tsx` to include the 'new route' you just added.
+When adding a page, update the react router configuration in `src/main.tsx` to include the new route you just added.
 
 ## Shad CN conventions
 
@@ -130,7 +129,7 @@ To use it, import the `motion` component from `framer-motion` and use it to wrap
 
 
 ### Other Items to animate
-- Fade in and Fade Out
+- Fade in and Fade out
 - Slide in and Slide Out animations
 - Rendering animations
 - Button clicks and UI elements
