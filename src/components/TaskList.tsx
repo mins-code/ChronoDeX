@@ -78,25 +78,30 @@ export function TaskList() {
                   )}
                 </Button>
 
-                <div className="flex-1">
-                  <h3
-                    className={`font-semibold text-white ${
-                      task.status === "completed" ? "line-through opacity-60" : ""
-                    }`}
-                  >
-                    {task.title}
-                  </h3>
-                  {task.description && (
-                    <p className="text-sm text-white/70 mt-1">{task.description}</p>
-                  )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
-                    <div className="flex items-center gap-1 text-xs text-white/60">
-                      <Clock className="h-3 w-3" />
-                      {new Date(task.dueDate).toLocaleDateString()}
+                  <div className="flex-1">
+                    <h3
+                      className={`font-semibold text-white ${
+                        task.status === "completed" ? "line-through opacity-60" : ""
+                      }`}
+                    >
+                      {task.title}
+                    </h3>
+                    {task.group && (
+                      <p className="text-xs text-blue-300 mt-0.5">
+                        📁 {task.group.name}
+                      </p>
+                    )}
+                    {task.description && (
+                      <p className="text-sm text-white/70 mt-1">{task.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
+                      <div className="flex items-center gap-1 text-xs text-white/60">
+                        <Clock className="h-3 w-3" />
+                        {new Date(task.dueDate).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                </div>
 
                 <Button
                   variant="ghost"

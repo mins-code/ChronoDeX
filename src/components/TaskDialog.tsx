@@ -22,6 +22,9 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
   const [isShared, setIsShared] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [repeatOption, setRepeatOption] = useState<string>("none");
+  const [endType, setEndType] = useState<"forever" | "until" | "count">("forever");
+  const [endDate, setEndDate] = useState<string>("");
+  const [occurrences, setOccurrences] = useState<number>(10);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,18 +41,37 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
 
     // Build recurrence rule if repeating
     let recurrenceRule = undefined;
+    let recurrenceEnd = undefined;
+    
     if (repeatOption !== "none") {
       if (repeatOption === "daily") {
         recurrenceRule = { frequency: "daily" as const };
       } else if (repeatOption === "weekly") {
         recurrenceRule = {
           frequency: "weekly" as const,
-          dayOfWeek: dueDateObj.getDay(), // 0-6
+          dayOfWeek: dueDateObj.getDay(),
         };
       } else if (repeatOption === "monthly") {
         recurrenceRule = {
           frequency: "monthly" as const,
-          dayOfMonth: dueDateObj.getDate(), // 1-31
+          dayOfMonth: dueDateObj.getDate(),
+        };
+      }
+
+      // Build recurrence end
+      if (endType === "until" && endDate) {
+        recurrenceEnd = {
+          type: "until" as const,
+          endDate: new Date(endDate).getTime(),
+        };
+      } else if (endType === "count") {
+        recurrenceEnd = {
+          type: "count" as const,
+          occurrences: occurrences,
+        };
+      } else {
+        recurrenceEnd = {
+          type: "forever" as const,
         };
       }
     }
@@ -64,6 +86,7 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
         isShared: isShared,
         groupId: isShared && selectedGroup ? (selectedGroup as any) : undefined,
         recurrenceRule,
+        recurrenceEnd,
       });
       toast.success(
         recurrenceRule
@@ -73,6 +96,9 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
       setIsShared(false);
       setSelectedGroup("");
       setRepeatOption("none");
+      setEndType("forever");
+      setEndDate("");
+      setOccurrences(10);
       onClose();
     } catch (error) {
       toast.error("Failed to create task");
@@ -93,7 +119,7 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="backdrop-blur-xl bg-white/10 border-white/20 text-white max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="backdrop-blur-xl bg-white/10 dark:bg-black/40 border-white/20 dark:border-blue-500/30 text-white max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white text-lg sm:text-xl">Create New Task</DialogTitle>
         </DialogHeader>
@@ -104,7 +130,7 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
               id="title"
               name="title"
               required
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              className="bg-white/10 dark:bg-black/20 border-white/20 dark:border-blue-500/30 text-white placeholder:text-white/50"
               placeholder="Enter task title"
             />
           </div>
@@ -114,7 +140,7 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
             <Textarea
               id="description"
               name="description"
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              className="bg-white/10 dark:bg-black/20 border-white/20 dark:border-blue-500/30 text-white placeholder:text-white/50"
               placeholder="Enter task description"
             />
           </div>
@@ -127,17 +153,17 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
               type="datetime-local"
               required
               defaultValue={defaultDateStr}
-              className="bg-white/10 border-white/20 text-white"
+              className="bg-white/10 dark:bg-black/20 border-white/20 dark:border-blue-500/30 text-white [color-scheme:dark]"
             />
           </div>
 
           <div>
             <Label htmlFor="priority" className="text-white">Priority</Label>
             <Select name="priority" defaultValue="medium">
-              <SelectTrigger className="bg-white/10 border-white/20 text-white">
+              <SelectTrigger className="bg-white/10 dark:bg-black/20 border-white/20 dark:border-blue-500/30 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
                 <SelectItem value="low">Low</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="high">High</SelectItem>
@@ -148,10 +174,10 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
           <div>
             <Label htmlFor="repeat" className="text-white">Repeat</Label>
             <Select value={repeatOption} onValueChange={setRepeatOption}>
-              <SelectTrigger className="bg-white/10 border-white/20 text-white">
+              <SelectTrigger className="bg-white/10 dark:bg-black/20 border-white/20 dark:border-blue-500/30 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
                 <SelectItem value="none">Does not repeat</SelectItem>
                 <SelectItem value="daily">Daily</SelectItem>
                 <SelectItem value="weekly">Weekly</SelectItem>
@@ -170,6 +196,49 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
             )}
           </div>
 
+          {repeatOption !== "none" && (
+            <div className="space-y-3 p-3 rounded-lg bg-white/5 dark:bg-black/20 border border-white/10 dark:border-blue-500/20">
+              <Label className="text-white font-semibold">Repeat Until</Label>
+              <Select value={endType} onValueChange={(v) => setEndType(v as any)}>
+                <SelectTrigger className="bg-white/10 dark:bg-black/20 border-white/20 dark:border-blue-500/30 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
+                  <SelectItem value="forever">Forever</SelectItem>
+                  <SelectItem value="until">Until Date</SelectItem>
+                  <SelectItem value="count">For X Repetitions</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {endType === "until" && (
+                <div>
+                  <Label htmlFor="endDate" className="text-white text-sm">End Date</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="bg-white/10 dark:bg-black/20 border-white/20 dark:border-blue-500/30 text-white [color-scheme:dark]"
+                  />
+                </div>
+              )}
+
+              {endType === "count" && (
+                <div>
+                  <Label htmlFor="occurrences" className="text-white text-sm">Number of Occurrences</Label>
+                  <Input
+                    id="occurrences"
+                    type="number"
+                    min="1"
+                    value={occurrences}
+                    onChange={(e) => setOccurrences(parseInt(e.target.value) || 1)}
+                    className="bg-white/10 dark:bg-black/20 border-white/20 dark:border-blue-500/30 text-white"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <Label htmlFor="sharing" className="text-white">Task Visibility</Label>
             <Select 
@@ -184,10 +253,10 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
                 }
               }}
             >
-              <SelectTrigger className="bg-white/10 border-white/20 text-white">
+              <SelectTrigger className="bg-white/10 dark:bg-black/20 border-white/20 dark:border-blue-500/30 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
                 <SelectItem value="private">Private (Just me)</SelectItem>
                 {groups && groups.length > 0 && (
                   <>
@@ -208,10 +277,10 @@ export function TaskDialog({ open, onClose, defaultDate }: TaskDialogProps) {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 justify-end">
-            <Button type="button" variant="ghost" onClick={onClose} className="text-white hover:bg-white/10 w-full sm:w-auto">
+            <Button type="button" variant="ghost" onClick={onClose} className="text-white hover:bg-white/10 dark:hover:bg-blue-500/20 w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-white/20 hover:bg-white/30 text-white w-full sm:w-auto">
+            <Button type="submit" disabled={isLoading} className="bg-white/20 dark:bg-blue-500/30 hover:bg-white/30 dark:hover:bg-blue-500/40 text-white w-full sm:w-auto">
               {isLoading ? "Creating..." : "Create Task"}
             </Button>
           </div>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, Circle, Edit, Trash2, Save, X } from "lucide-react";
+import { CheckCircle, Circle, Edit, Trash2, Save, X, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
@@ -19,6 +19,8 @@ interface Task {
   dependencies?: Array<Id<"tasks">>;
   isShared?: boolean;
   groupId?: Id<"groups">;
+  recurringTaskId?: Id<"recurringTasks">;
+  instanceNumber?: number;
 }
 
 interface TaskSectionProps {
@@ -27,6 +29,7 @@ interface TaskSectionProps {
   onToggleComplete: (taskId: Id<"tasks">, currentStatus: string) => void;
   onDelete: (taskId: Id<"tasks">) => void;
   onEdit: (taskId: Id<"tasks">, updates: any) => void;
+  onPostpone?: (taskId: Id<"tasks">) => void;
   emptyMessage?: string;
 }
 
@@ -36,6 +39,7 @@ export function TaskSection({
   onToggleComplete,
   onDelete,
   onEdit,
+  onPostpone,
   emptyMessage = "No tasks found",
 }: TaskSectionProps) {
   const [editingTaskId, setEditingTaskId] = useState<Id<"tasks"> | null>(null);
@@ -83,6 +87,13 @@ export function TaskSection({
     setEditForm(null);
   };
 
+  // Sort tasks: incomplete first, then completed at bottom
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (a.status === "completed" && b.status !== "completed") return 1;
+    if (a.status !== "completed" && b.status === "completed") return -1;
+    return 0;
+  });
+
   return (
     <div className="space-y-3">
       <h2 className="text-xl sm:text-2xl font-bold text-white">{title}</h2>
@@ -93,7 +104,7 @@ export function TaskSection({
         </Card>
       ) : (
         <div className="space-y-3">
-          {tasks.map((task, index) => (
+          {sortedTasks.map((task, index) => (
             <motion.div
               key={task._id}
               initial={{ opacity: 0, y: 20 }}
@@ -120,13 +131,13 @@ export function TaskSection({
                         type="date"
                         value={editForm.dueDate}
                         onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white flex-1"
+                        className="bg-white/10 border-white/20 text-white flex-1 [color-scheme:dark]"
                       />
                       <Select value={editForm.priority} onValueChange={(value) => setEditForm({ ...editForm, priority: value as any })}>
                         <SelectTrigger className="bg-white/10 border-white/20 text-white flex-1 sm:w-[140px]">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
                           <SelectItem value="low">Low</SelectItem>
                           <SelectItem value="medium">Medium</SelectItem>
                           <SelectItem value="high">High</SelectItem>
@@ -136,7 +147,7 @@ export function TaskSection({
                         <SelectTrigger className="bg-white/10 border-white/20 text-white flex-1 sm:w-[140px]">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="in-progress">In Progress</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
@@ -185,6 +196,11 @@ export function TaskSection({
                         }`}
                       >
                         {task.title}
+                        {task.recurringTaskId && (
+                          <Badge className="ml-2 bg-purple-500/20 text-purple-200 border-purple-500/30 text-xs">
+                            Recurring {task.instanceNumber ? `#${task.instanceNumber}` : ""}
+                          </Badge>
+                        )}
                       </h3>
                       {task.description && (
                         <p className="text-xs sm:text-sm text-white/70 mt-1 break-words">{task.description}</p>
@@ -213,6 +229,18 @@ export function TaskSection({
                     </div>
 
                     <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                      {onPostpone && task.status !== "completed" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-white/60 hover:text-orange-400 hover:bg-white/10"
+                          onClick={() => onPostpone(task._id)}
+                          title="Postpone by 24 hours"
+                        >
+                          <Clock className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
                       <Button
                         variant="ghost"
                         size="icon"

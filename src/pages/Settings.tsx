@@ -17,7 +17,7 @@ export default function Settings() {
   const { isLoading, isAuthenticated, signOut } = useAuth();
   const navigate = useNavigate();
   const { isSupported, permission, enableNotifications } = useNotifications();
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true); // Default to dark mode
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -25,10 +25,18 @@ export default function Settings() {
     }
   }, [isLoading, isAuthenticated, navigate]);
 
-  // Initialize dark mode state from localStorage
+  // Initialize dark mode state from localStorage or default to true
   useEffect(() => {
-    const isDark = localStorage.getItem("darkMode") === "true";
+    const savedDarkMode = localStorage.getItem("darkMode");
+    const isDark = savedDarkMode === null ? true : savedDarkMode === "true";
     setDarkMode(isDark);
+    
+    // Apply dark mode on initial load
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
   }, []);
 
   // Add debug logging

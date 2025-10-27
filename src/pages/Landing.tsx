@@ -101,6 +101,10 @@ export default function Landing() {
             <Button
               size="lg"
               variant="outline"
+              onClick={() => {
+                const featuresSection = document.querySelector('main section:nth-of-type(2)');
+                featuresSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
               className="bg-white/10 text-white border-white/30 hover:bg-white/20 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full sm:w-auto"
             >
               Learn More

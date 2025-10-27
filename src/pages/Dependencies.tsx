@@ -84,12 +84,12 @@ export default function Dependencies() {
   const tasksWithDependencies = tasks?.filter(task => task.dependencies && task.dependencies.length > 0) || [];
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400">
+    <div className="min-h-screen flex bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 dark:from-gray-900 dark:via-blue-950 dark:to-black transition-colors duration-500">
       <Sidebar />
       <motion.main
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex-1 p-6 overflow-auto"
+        className="flex-1 p-6 overflow-auto dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-950 dark:to-black"
       >
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
@@ -207,7 +207,7 @@ export default function Dependencies() {
                 <SelectTrigger className="bg-white/10 border-white/20 text-white">
                   <SelectValue placeholder="Select a task" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
                   {tasks?.map((task) => (
                     <SelectItem key={task._id} value={task._id}>
                       {task.title}
@@ -223,7 +223,7 @@ export default function Dependencies() {
                 <SelectTrigger className="bg-white/10 border-white/20 text-white">
                   <SelectValue placeholder="Select dependency" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
                   {tasks
                     ?.filter((task) => task._id !== selectedTask)
                     .map((task) => (

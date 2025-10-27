@@ -24,13 +24,15 @@ export default function Tasks() {
   const groups = useQuery(api.groups.list);
   const updateTask = useMutation(api.tasks.update);
   const deleteTask = useMutation(api.tasks.remove);
+  const postponeTask = useMutation(api.tasks.postpone);
+  const restoreTask = useMutation(api.tasks.restore);
   
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "in-progress" | "completed">("all");
   const [filterPriority, setFilterPriority] = useState<"all" | "low" | "medium" | "high">("all");
   const [sortBy, setSortBy] = useState<"dueDate" | "priority" | "title">("dueDate");
-  const [deletedTasks, setDeletedTasks] = useState<Array<{ id: Id<"tasks">; timestamp: number }>>([]);
+  const [deletedTasks, setDeletedTasks] = useState<Array<{ id: Id<"tasks">; timestamp: number; data: any }>>([]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -64,12 +66,42 @@ export default function Tasks() {
 
   const handleDelete = async (taskId: Id<"tasks">) => {
     try {
+      const task = allTasks?.find(t => t._id === taskId);
+      if (!task) {
+        toast.error("Task not found");
+        return;
+      }
+
+      // Store the task data for undo BEFORE deleting
+      const taskData = {
+        title: task.title,
+        description: task.description,
+        dueDate: task.dueDate,
+        priority: task.priority,
+        status: task.status,
+        tags: task.tags,
+        dependencies: task.dependencies,
+        isRecurring: task.isRecurring,
+        recurringPattern: task.recurringPattern,
+        recurringTaskId: task.recurringTaskId,
+        completedAt: task.completedAt,
+        isShared: task.isShared,
+        groupId: task.groupId,
+      };
+
+      // Update state immediately with the new deleted task
+      setDeletedTasks(prev => [...prev, { 
+        id: taskId, 
+        timestamp: Date.now(),
+        data: taskData
+      }]);
+
       await deleteTask({ id: taskId });
-      setDeletedTasks([...deletedTasks, { id: taskId, timestamp: Date.now() }]);
+      
       toast.success("Task deleted", {
         action: {
           label: "Undo",
-          onClick: () => handleUndo(taskId),
+          onClick: () => handleUndo(taskId, taskData),
         },
       });
     } catch (error: any) {
@@ -77,9 +109,14 @@ export default function Tasks() {
     }
   };
 
-  const handleUndo = (taskId: Id<"tasks">) => {
-    setDeletedTasks(deletedTasks.filter(t => t.id !== taskId));
-    toast.info("Undo feature - task would be restored from Stack");
+  const handleUndo = async (taskId: Id<"tasks">, taskData: any) => {
+    try {
+      await restoreTask(taskData);
+      setDeletedTasks(prev => prev.filter(t => t.id !== taskId));
+      toast.success("Task restored successfully!");
+    } catch (error) {
+      toast.error("Failed to restore task");
+    }
   };
 
   const handleEdit = async (taskId: Id<"tasks">, updates: any) => {
@@ -91,6 +128,15 @@ export default function Tasks() {
       toast.success("Task updated successfully!");
     } catch (error: any) {
       toast.error(error.message || "Failed to update task");
+    }
+  };
+
+  const handlePostpone = async (taskId: Id<"tasks">) => {
+    try {
+      await postponeTask({ id: taskId });
+      toast.success("Task postponed by 24 hours");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to postpone task");
     }
   };
 
@@ -166,7 +212,7 @@ export default function Tasks() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400">
+    <div className="min-h-screen flex bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 dark:from-gray-900 dark:via-blue-950 dark:to-black transition-colors duration-500">
       <Sidebar />
       <motion.main
         initial={{ opacity: 0 }}
@@ -228,7 +274,7 @@ export default function Tasks() {
                   <SelectTrigger className="bg-white/10 border-white/20 text-white hover:bg-white/20 focus:ring-white/30">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
-                  <SelectContent className="backdrop-blur-xl bg-white/95 border-white/30 shadow-xl">
+                  <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30 shadow-xl">
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="in-progress">In Progress</SelectItem>
@@ -240,7 +286,7 @@ export default function Tasks() {
                   <SelectTrigger className="bg-white/10 border-white/20 text-white hover:bg-white/20 focus:ring-white/30">
                     <SelectValue placeholder="All Priority" />
                   </SelectTrigger>
-                  <SelectContent className="backdrop-blur-xl bg-white/95 border-white/30 shadow-xl">
+                  <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30 shadow-xl">
                     <SelectItem value="all">All Priority</SelectItem>
                     <SelectItem value="high">High</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
@@ -252,7 +298,7 @@ export default function Tasks() {
                   <SelectTrigger className="bg-white/10 border-white/20 text-white hover:bg-white/20 focus:ring-white/30">
                     <SelectValue placeholder="Sort by..." />
                   </SelectTrigger>
-                  <SelectContent className="backdrop-blur-xl bg-white/95 border-white/30 shadow-xl">
+                  <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30 shadow-xl">
                     <SelectItem value="dueDate">Sort by Due Date</SelectItem>
                     <SelectItem value="priority">Sort by Priority</SelectItem>
                     <SelectItem value="title">Sort by Title</SelectItem>
@@ -270,6 +316,7 @@ export default function Tasks() {
                 onToggleComplete={handleToggleComplete}
                 onDelete={handleDelete}
                 onEdit={handleEdit}
+                onPostpone={handlePostpone}
                 emptyMessage=""
               />
             </div>
@@ -281,6 +328,7 @@ export default function Tasks() {
             onToggleComplete={handleToggleComplete}
             onDelete={handleDelete}
             onEdit={handleEdit}
+            onPostpone={handlePostpone}
             emptyMessage="No private tasks found. Create one to get started!"
           />
 
@@ -294,6 +342,7 @@ export default function Tasks() {
                     onToggleComplete={handleToggleComplete}
                     onDelete={handleDelete}
                     onEdit={handleEdit}
+                    onPostpone={handlePostpone}
                     emptyMessage=""
                   />
                 </div>
@@ -305,6 +354,7 @@ export default function Tasks() {
                 onToggleComplete={handleToggleComplete}
                 onDelete={handleDelete}
                 onEdit={handleEdit}
+                onPostpone={handlePostpone}
                 emptyMessage="No shared tasks yet. Create a task and assign it to a group!"
               />
             </div>

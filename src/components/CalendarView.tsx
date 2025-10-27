@@ -44,6 +44,13 @@ export function CalendarView() {
     return tasks?.filter((task) => new Date(task.dueDate).toDateString() === dateStr) || [];
   };
 
+  const getTaskDisplayText = (task: any) => {
+    if (task.group) {
+      return `${task.title} (${task.group.name})`;
+    }
+    return task.title;
+  };
+
   const getRemindersForDate = (date: Date | null) => {
     if (!date || !reminders) return [];
     
@@ -150,7 +157,7 @@ export function CalendarView() {
                               : "bg-green-500/30 text-white"
                           }`}
                         >
-                          <span className="hidden sm:inline">{task.title}</span>
+                          <span className="hidden sm:inline">{getTaskDisplayText(task)}</span>
                           <span className="sm:hidden">{task.title.substring(0, 8)}...</span>
                         </div>
                       ))}

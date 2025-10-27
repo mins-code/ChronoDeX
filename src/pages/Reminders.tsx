@@ -30,7 +30,7 @@ export default function Reminders() {
   const [editingId, setEditingId] = useState<Id<"reminders"> | null>(null);
   const [formData, setFormData] = useState({
     title: "",
-    frequency: "daily" as "daily" | "weekly" | "monthly",
+    frequency: "daily" as "daily" | "weekly" | "monthly" | "yearly",
     time: "09:00",
     dayOfWeek: 1,
     dayOfMonth: 1,
@@ -139,7 +139,7 @@ export default function Reminders() {
   const sharedReminders = reminders?.filter((r) => r.isShared) || [];
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400">
+    <div className="min-h-screen flex bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 dark:from-gray-900 dark:via-blue-950 dark:to-black transition-colors duration-500">
       <Sidebar />
       <motion.main
         initial={{ opacity: 0 }}
@@ -316,11 +316,12 @@ export default function Reminders() {
                 <SelectTrigger className="bg-white/10 border-white/20 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
+                  <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
               </Select>
             </div>
 
@@ -334,7 +335,7 @@ export default function Reminders() {
                   <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
                     <SelectItem value="0">Sunday</SelectItem>
                     <SelectItem value="1">Monday</SelectItem>
                     <SelectItem value="2">Tuesday</SelectItem>
@@ -359,6 +360,28 @@ export default function Reminders() {
                   onChange={(e) => setFormData({ ...formData, dayOfMonth: parseInt(e.target.value) })}
                   className="bg-white/10 border-white/20 text-white"
                 />
+              </div>
+            )}
+
+            {formData.frequency === "yearly" && (
+              <div>
+                <Label htmlFor="yearlyDate" className="text-white">Date (Month & Day)</Label>
+                <Input
+                  id="yearlyDate"
+                  type="date"
+                  onChange={(e) => {
+                    const date = new Date(e.target.value);
+                    setFormData({ 
+                      ...formData, 
+                      dayOfMonth: date.getDate(),
+                      dayOfWeek: date.getMonth() // Store month in dayOfWeek for yearly
+                    });
+                  }}
+                  className="bg-white/10 border-white/20 text-white [color-scheme:dark]"
+                />
+                <p className="text-xs text-white/60 mt-1">
+                  Reminder will repeat every year on this date
+                </p>
               </div>
             )}
 
@@ -390,7 +413,7 @@ export default function Reminders() {
                   <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="backdrop-blur-xl bg-white/95 dark:bg-gray-900 border-white/30 dark:border-blue-500/30">
                     <SelectItem value="private">Just me</SelectItem>
                     {groups && groups.map((group) => (
                       <SelectItem key={group._id} value={group._id}>

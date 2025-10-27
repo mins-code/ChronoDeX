@@ -26,9 +26,9 @@ const schema = defineSchema(
       emailVerificationTime: v.optional(v.number()),
       isAnonymous: v.optional(v.boolean()),
       role: v.optional(roleValidator),
+      prefersDarkMode: v.optional(v.boolean()), // User theme preference
     }).index("email", ["email"]),
 
-    // Groups for shared tasks
     groups: defineTable({
       name: v.string(),
       description: v.optional(v.string()),
@@ -36,7 +36,6 @@ const schema = defineSchema(
       members: v.array(v.id("users")),
     }),
 
-    // Group invitations
     groupInvitations: defineTable({
       groupId: v.id("groups"),
       inviterId: v.id("users"),
@@ -46,17 +45,27 @@ const schema = defineSchema(
       .index("by_invitee", ["inviteeId"])
       .index("by_group_and_invitee", ["groupId", "inviteeId"]),
 
-    // Reminders (separate from tasks - for personal items)
     reminders: defineTable({
       userId: v.id("users"),
       groupId: v.optional(v.id("groups")),
       title: v.string(),
       recurrenceRule: v.object({
-        frequency: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
-        time: v.string(), // Format: "HH:MM" (24-hour)
-        dayOfWeek: v.optional(v.number()), // 0-6 for weekly
-        dayOfMonth: v.optional(v.number()), // 1-31 for monthly
+        frequency: v.union(
+          v.literal("daily"), 
+          v.literal("weekly"), 
+          v.literal("monthly"),
+          v.literal("yearly")
+        ),
+        time: v.string(),
+        dayOfWeek: v.optional(v.number()),
+        dayOfMonth: v.optional(v.number()),
+        monthOfYear: v.optional(v.number()), // For yearly reminders (0-11)
       }),
+      recurrenceEnd: v.optional(v.object({
+        type: v.union(v.literal("forever"), v.literal("until"), v.literal("count")),
+        endDate: v.optional(v.number()), // For "until" type
+        occurrences: v.optional(v.number()), // For "count" type
+      })),
       showOnCalendar: v.boolean(),
       isShared: v.boolean(),
       isActive: v.boolean(),
@@ -64,7 +73,6 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_group", ["groupId"]),
 
-    // Recurring Tasks (Parent/Template)
     recurringTasks: defineTable({
       userId: v.id("users"),
       groupId: v.optional(v.id("groups")),
@@ -75,15 +83,19 @@ const schema = defineSchema(
       isShared: v.optional(v.boolean()),
       recurrenceRule: v.object({
         frequency: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
-        dayOfWeek: v.optional(v.number()), // 0-6 for weekly
-        dayOfMonth: v.optional(v.number()), // 1-31 for monthly
+        dayOfWeek: v.optional(v.number()),
+        dayOfMonth: v.optional(v.number()),
       }),
-      isActive: v.boolean(), // Can be paused/stopped
+      recurrenceEnd: v.optional(v.object({
+        type: v.union(v.literal("forever"), v.literal("until"), v.literal("count")),
+        endDate: v.optional(v.number()),
+        occurrences: v.optional(v.number()),
+      })),
+      isActive: v.boolean(),
     })
       .index("by_user", ["userId"])
       .index("by_group", ["groupId"]),
 
-    // FCM Device Tokens table
     deviceTokens: defineTable({
       userId: v.id("users"),
       token: v.string(),
@@ -99,16 +111,21 @@ const schema = defineSchema(
       description: v.optional(v.string()),
       dueDate: v.number(),
       priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-      status: v.union(v.literal("pending"), v.literal("in-progress"), v.literal("completed")),
+      status: v.union(
+        v.literal("pending"), 
+        v.literal("in-progress"), 
+        v.literal("completed"),
+        v.literal("overdue")
+      ),
       tags: v.optional(v.array(v.string())),
       dependencies: v.optional(v.array(v.id("tasks"))),
       isRecurring: v.optional(v.boolean()),
       recurringPattern: v.optional(v.string()),
-      recurringTaskId: v.optional(v.id("recurringTasks")), // Link to parent recurring task
+      recurringTaskId: v.optional(v.id("recurringTasks")),
       completedAt: v.optional(v.number()),
-      // Sharing properties
       isShared: v.optional(v.boolean()),
       groupId: v.optional(v.id("groups")),
+      instanceNumber: v.optional(v.number()), // Track which instance of recurring task
     })
       .index("by_user", ["userId"])
       .index("by_user_and_status", ["userId", "status"])
@@ -124,7 +141,12 @@ const schema = defineSchema(
       read: v.boolean(),
       scheduledTime: v.number(),
       remindBefore: v.optional(v.number()),
-      status: v.union(v.literal("upcoming"), v.literal("sent"), v.literal("missed")),
+      status: v.union(
+        v.literal("upcoming"), 
+        v.literal("sent"), 
+        v.literal("missed"),
+        v.literal("pending")
+      ),
     }).index("by_user", ["userId"])
       .index("by_user_and_status", ["userId", "status"]),
 

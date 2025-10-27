@@ -22,6 +22,11 @@ export const create = mutation({
       dayOfWeek: v.optional(v.number()),
       dayOfMonth: v.optional(v.number()),
     })),
+    recurrenceEnd: v.optional(v.object({
+      type: v.union(v.literal("forever"), v.literal("until"), v.literal("count")),
+      endDate: v.optional(v.number()),
+      occurrences: v.optional(v.number()),
+    })),
   },
   handler: async (ctx, args): Promise<Id<"tasks">> => {
     const user = await getCurrentUser(ctx);
@@ -34,7 +39,6 @@ export const create = mutation({
       }
     }
 
-    // If this is a recurring task, delegate to recurringTasks.create
     if (args.recurrenceRule) {
       const result: { recurringTaskId: Id<"recurringTasks">; firstTaskId: Id<"tasks"> } = await ctx.runMutation(internal.recurringTasks.create, {
         title: args.title,
@@ -45,17 +49,80 @@ export const create = mutation({
         isShared: args.isShared,
         groupId: args.groupId,
         recurrenceRule: args.recurrenceRule,
+        ...(args.recurrenceEnd && { recurrenceEnd: args.recurrenceEnd }),
       });
       return result.firstTaskId;
     }
 
-    // Regular one-time task
     const taskId = await ctx.db.insert("tasks", {
       ...args,
       userId: user._id,
       completedAt: undefined,
     });
 
+    const remindBefore = 30;
+    const scheduledTime = args.dueDate - remindBefore * 60 * 1000;
+    const now = Date.now();
+
+    if (args.isShared && args.groupId) {
+      const group = await ctx.db.get(args.groupId);
+      if (group) {
+        for (const memberId of group.members) {
+          await ctx.db.insert("notifications", {
+            userId: memberId,
+            taskId: taskId,
+            message: `${args.title} is due soon`,
+            type: "reminder",
+            read: false,
+            scheduledTime,
+            remindBefore,
+            status: scheduledTime > now ? "upcoming" : "sent",
+          });
+        }
+      }
+    } else {
+      await ctx.db.insert("notifications", {
+        userId: user._id,
+        taskId: taskId,
+        message: `${args.title} is due soon`,
+        type: "reminder",
+        read: false,
+        scheduledTime,
+        remindBefore,
+        status: scheduledTime > now ? "upcoming" : "sent",
+      });
+    }
+
+    return taskId;
+  },
+});
+
+export const restore = mutation({
+  args: {
+    title: v.string(),
+    description: v.optional(v.string()),
+    dueDate: v.number(),
+    priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    status: v.union(v.literal("pending"), v.literal("in-progress"), v.literal("completed"), v.literal("overdue")),
+    tags: v.optional(v.array(v.string())),
+    dependencies: v.optional(v.array(v.id("tasks"))),
+    isRecurring: v.optional(v.boolean()),
+    recurringPattern: v.optional(v.string()),
+    recurringTaskId: v.optional(v.id("recurringTasks")),
+    completedAt: v.optional(v.number()),
+    isShared: v.optional(v.boolean()),
+    groupId: v.optional(v.id("groups")),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Unauthorized");
+
+    const taskId = await ctx.db.insert("tasks", {
+      ...args,
+      userId: user._id,
+    });
+
+    // Recreate notification
     const remindBefore = 30;
     const scheduledTime = args.dueDate - remindBefore * 60 * 1000;
     const now = Date.now();
@@ -194,7 +261,7 @@ export const update = mutation({
     description: v.optional(v.string()),
     dueDate: v.optional(v.number()),
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
-    status: v.optional(v.union(v.literal("pending"), v.literal("in-progress"), v.literal("completed"))),
+    status: v.optional(v.union(v.literal("pending"), v.literal("in-progress"), v.literal("completed"), v.literal("overdue"))),
     tags: v.optional(v.array(v.string())),
     dependencies: v.optional(v.array(v.id("tasks"))),
   },
@@ -221,7 +288,6 @@ export const update = mutation({
     if (updates.status === "completed" && task.status !== "completed") {
       await ctx.db.patch(id, { ...updates, completedAt: Date.now() });
       
-      // If this is a recurring task, generate the next instance
       if (task.recurringTaskId) {
         await ctx.runMutation(internal.recurringTasks.generateNextInstance, {
           recurringTaskId: task.recurringTaskId,
@@ -229,10 +295,7 @@ export const update = mutation({
         });
       }
       
-      const notifications = await ctx.db
-        .query("notifications")
-        .collect();
-      
+      const notifications = await ctx.db.query("notifications").collect();
       const taskNotifications = notifications.filter(n => n.taskId === id);
       await Promise.all(
         taskNotifications.map(n => ctx.db.delete(n._id))
@@ -309,10 +372,23 @@ export const getUpcoming = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    return tasks
+    const upcomingTasks = tasks
       .filter((task) => task.status !== "completed" && task.dueDate >= now)
       .sort((a, b) => a.dueDate - b.dueDate)
       .slice(0, 5);
+
+    // Fetch group information for shared tasks
+    const tasksWithGroups = await Promise.all(
+      upcomingTasks.map(async (task) => {
+        if (task.isShared && task.groupId) {
+          const group = await ctx.db.get(task.groupId);
+          return { ...task, group };
+        }
+        return { ...task, group: null };
+      })
+    );
+
+    return tasksWithGroups;
   },
 });
 
@@ -372,5 +448,47 @@ export const removeDependency = mutation({
     });
 
     return args.taskId;
+  },
+});
+
+export const postpone = mutation({
+  args: {
+    id: v.id("tasks"),
+    customDate: v.optional(v.number()), // If provided, use this; otherwise add 24 hours
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Unauthorized");
+
+    const task = await ctx.db.get(args.id);
+    if (!task) throw new Error("Task not found");
+
+    if (task.isShared && task.groupId) {
+      const group = await ctx.db.get(task.groupId);
+      if (!group || !group.members.includes(user._id)) {
+        throw new Error("You don't have permission to postpone this shared task");
+      }
+    } else if (task.userId !== user._id) {
+      throw new Error("Task not found");
+    }
+
+    const newDueDate = args.customDate || (task.dueDate + 24 * 60 * 60 * 1000);
+    
+    await ctx.db.patch(args.id, { dueDate: newDueDate });
+
+    // Update associated notifications
+    const notifications = await ctx.db.query("notifications").collect();
+    const taskNotifications = notifications.filter(n => n.taskId === args.id);
+    
+    for (const notif of taskNotifications) {
+      const remindBefore = notif.remindBefore || 30;
+      const newScheduledTime = newDueDate - remindBefore * 60 * 1000;
+      await ctx.db.patch(notif._id, {
+        scheduledTime: newScheduledTime,
+        status: newScheduledTime > Date.now() ? "upcoming" : "sent",
+      });
+    }
+
+    return args.id;
   },
 });

@@ -18,6 +18,8 @@ export function ReminderList() {
         return "bg-purple-500/20 text-purple-200 border-purple-500/30";
       case "monthly":
         return "bg-pink-500/20 text-pink-200 border-pink-500/30";
+      case "yearly":
+        return "bg-orange-500/20 text-orange-200 border-orange-500/30";
       default:
         return "bg-gray-500/20 text-gray-200 border-gray-500/30";
     }
@@ -72,6 +74,11 @@ export function ReminderList() {
                     {reminder.recurrenceRule.frequency === "monthly" && reminder.recurrenceRule.dayOfMonth && (
                       <span className="text-xs text-white/60">
                         on day {reminder.recurrenceRule.dayOfMonth}
+                      </span>
+                    )}
+                    {reminder.recurrenceRule.frequency === "yearly" && reminder.recurrenceRule.dayOfMonth && reminder.recurrenceRule.dayOfWeek !== undefined && (
+                      <span className="text-xs text-white/60">
+                        on {new Date(2024, reminder.recurrenceRule.dayOfWeek, reminder.recurrenceRule.dayOfMonth).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
                     )}
                     {reminder.isShared && (

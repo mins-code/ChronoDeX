@@ -10,11 +10,22 @@ export const create = mutation({
   args: {
     title: v.string(),
     recurrenceRule: v.object({
-      frequency: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
-      time: v.string(), // Format: "HH:MM" (24-hour)
-      dayOfWeek: v.optional(v.number()), // 0-6 for weekly
-      dayOfMonth: v.optional(v.number()), // 1-31 for monthly
+      frequency: v.union(
+        v.literal("daily"), 
+        v.literal("weekly"), 
+        v.literal("monthly"),
+        v.literal("yearly")
+      ),
+      time: v.string(),
+      dayOfWeek: v.optional(v.number()),
+      dayOfMonth: v.optional(v.number()),
+      monthOfYear: v.optional(v.number()),
     }),
+    recurrenceEnd: v.optional(v.object({
+      type: v.union(v.literal("forever"), v.literal("until"), v.literal("count")),
+      endDate: v.optional(v.number()),
+      occurrences: v.optional(v.number()),
+    })),
     showOnCalendar: v.boolean(),
     isShared: v.optional(v.boolean()),
     groupId: v.optional(v.id("groups")),
@@ -23,7 +34,6 @@ export const create = mutation({
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Unauthorized");
 
-    // Verify group membership if shared
     if (args.isShared && args.groupId) {
       const group = await ctx.db.get(args.groupId);
       if (!group || !group.members.includes(user._id)) {
@@ -36,6 +46,7 @@ export const create = mutation({
       groupId: args.groupId,
       title: args.title,
       recurrenceRule: args.recurrenceRule,
+      recurrenceEnd: args.recurrenceEnd,
       showOnCalendar: args.showOnCalendar,
       isShared: args.isShared || false,
       isActive: true,
@@ -106,10 +117,21 @@ export const update = mutation({
     id: v.id("reminders"),
     title: v.optional(v.string()),
     recurrenceRule: v.optional(v.object({
-      frequency: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
+      frequency: v.union(
+        v.literal("daily"), 
+        v.literal("weekly"), 
+        v.literal("monthly"),
+        v.literal("yearly")
+      ),
       time: v.string(),
       dayOfWeek: v.optional(v.number()),
       dayOfMonth: v.optional(v.number()),
+      monthOfYear: v.optional(v.number()),
+    })),
+    recurrenceEnd: v.optional(v.object({
+      type: v.union(v.literal("forever"), v.literal("until"), v.literal("count")),
+      endDate: v.optional(v.number()),
+      occurrences: v.optional(v.number()),
     })),
     showOnCalendar: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
@@ -125,7 +147,6 @@ export const update = mutation({
       throw new Error("Reminder not found");
     }
 
-    // Check permissions
     if (reminder.isShared && reminder.groupId) {
       const group = await ctx.db.get(reminder.groupId);
       if (!group || !group.members.includes(user._id)) {

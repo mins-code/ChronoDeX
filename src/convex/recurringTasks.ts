@@ -48,6 +48,11 @@ export const create = internalMutation({
       dayOfWeek: v.optional(v.number()),
       dayOfMonth: v.optional(v.number()),
     }),
+    recurrenceEnd: v.optional(v.object({
+      type: v.union(v.literal("forever"), v.literal("until"), v.literal("count")),
+      endDate: v.optional(v.number()),
+      occurrences: v.optional(v.number()),
+    })),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -71,6 +76,7 @@ export const create = internalMutation({
       tags: args.tags,
       isShared: args.isShared,
       recurrenceRule: args.recurrenceRule,
+      recurrenceEnd: args.recurrenceEnd,
       isActive: true,
     });
 

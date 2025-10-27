@@ -119,13 +119,45 @@ export default function Notifications() {
     ...(pastNotifications || []).map(n => ({ ...n, section: "past" as const }))
   ];
 
-  const filteredNotifications = allNotifications.filter((notif) => {
-    if (filter === "upcoming") return notif.section === "upcoming";
-    if (filter === "past") return notif.section === "past";
-    return true;
-  });
+  // Filter to show only the most upcoming notification for each recurring task
+  const filterRecurringNotifications = (notifications: typeof allNotifications) => {
+    const recurringTaskMap = new Map<string, typeof allNotifications[0]>();
+    const nonRecurringNotifications: typeof allNotifications = [];
 
-  const unreadCount = allNotifications.filter((n) => !n.read).length;
+    notifications.forEach(notif => {
+      if (notif.task?.recurringTaskId) {
+        const recurringTaskId = notif.task.recurringTaskId;
+        const existing = recurringTaskMap.get(recurringTaskId);
+        
+        // Keep only the notification with the earliest scheduled time for each recurring task
+        if (!existing || notif.scheduledTime < existing.scheduledTime) {
+          recurringTaskMap.set(recurringTaskId, notif);
+        }
+      } else {
+        nonRecurringNotifications.push(notif);
+      }
+    });
+
+    return [...nonRecurringNotifications, ...Array.from(recurringTaskMap.values())];
+  };
+
+  // Apply recurring filter to all notifications
+  const filteredAllNotifications = filterRecurringNotifications(allNotifications);
+
+  // Separate pending (unread past) notifications
+  const pendingNotifications = filteredAllNotifications.filter(n => n.section === "past" && !n.read);
+  const otherNotifications = filteredAllNotifications.filter(n => !(n.section === "past" && !n.read));
+
+  const filteredNotifications = (() => {
+    if (filter === "upcoming") return otherNotifications.filter(n => n.section === "upcoming");
+    if (filter === "past") return otherNotifications.filter(n => n.section === "past");
+    return otherNotifications;
+  })();
+
+  // Limit to top 5 for main display (excluding pending)
+  const displayNotifications = filter === "all" ? filteredNotifications.slice(0, 5) : filteredNotifications;
+
+  const unreadCount = filteredAllNotifications.filter((n) => !n.read).length;
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -194,12 +226,12 @@ export default function Notifications() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400">
+    <div className="min-h-screen flex bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 dark:from-gray-900 dark:via-blue-950 dark:to-black transition-colors duration-500">
       <Sidebar />
       <motion.main
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex-1 p-6 overflow-auto"
+        className="flex-1 p-6 overflow-auto dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-950 dark:to-black"
       >
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
@@ -233,19 +265,93 @@ export default function Notifications() {
                 onClick={() => setFilter("upcoming")}
                 className={filter === "upcoming" ? "bg-white/20 text-white" : "text-white/80 hover:bg-white/10"}
               >
-                Upcoming ({upcomingNotifications?.length || 0})
+                Upcoming ({filterRecurringNotifications((upcomingNotifications || []).map(n => ({ ...n, section: "upcoming" as const }))).length})
               </Button>
               <Button
                 variant={filter === "past" ? "secondary" : "ghost"}
                 onClick={() => setFilter("past")}
                 className={filter === "past" ? "bg-white/20 text-white" : "text-white/80 hover:bg-white/10"}
               >
-                Past ({pastNotifications?.length || 0})
+                Past ({filterRecurringNotifications((pastNotifications || []).map(n => ({ ...n, section: "past" as const }))).length})
               </Button>
             </div>
           </Card>
 
-          {filteredNotifications.length === 0 ? (
+          {pendingNotifications.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white mb-3">⚠️ Pending Notifications</h2>
+              <div className="space-y-3">
+                {pendingNotifications.map((notification, index) => (
+                  <motion.div
+                    key={notification._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Card className="p-4 backdrop-blur-xl bg-red-500/10 border-red-500/30 shadow-xl">
+                      <div className="flex items-start gap-4">
+                        <div className={`p-2 rounded-lg ${getNotificationColor(notification.type)}`}>
+                          {getNotificationIcon(notification.type)}
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex gap-2 flex-wrap">
+                              <Badge className={getNotificationColor(notification.type)}>
+                                {notification.type}
+                              </Badge>
+                              <Badge className="bg-red-500/20 text-red-200 border-red-500/30">Pending</Badge>
+                              {notification.task && (
+                                <Badge className={getPriorityColor(notification.task.priority)}>
+                                  {notification.task.priority} priority
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <h3 className="text-white font-semibold mb-1">
+                            {notification.task?.title || "Task"}
+                          </h3>
+                          <p className="text-white/80 text-sm mb-2">
+                            {notification.message}
+                          </p>
+
+                          <div className="flex items-center gap-4 text-sm text-white/60">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {formatScheduledTime(notification.scheduledTime)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-white/60 hover:text-white hover:bg-white/10"
+                            onClick={() => handleMarkAsRead(notification._id)}
+                          >
+                            Mark Read
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-white/60 hover:text-red-400 hover:bg-white/10"
+                            onClick={() => handleDeleteNotification(notification._id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {displayNotifications.length === 0 ? (
             <Card className="p-12 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl text-center">
               <Bell className="h-16 w-16 text-white/40 mx-auto mb-4" />
               <p className="text-white/60 text-lg">No notifications</p>
@@ -255,7 +361,7 @@ export default function Notifications() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {filteredNotifications.map((notification, index) => (
+              {displayNotifications.map((notification, index) => (
                 <motion.div
                   key={notification._id}
                   initial={{ opacity: 0, y: 20 }}
@@ -399,6 +505,13 @@ export default function Notifications() {
                   </Card>
                 </motion.div>
               ))}
+              {filter === "all" && filteredNotifications.length > 5 && (
+                <Card className="p-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-xl text-center">
+                  <p className="text-white/60">
+                    Showing top 5 notifications. Use filters to see more.
+                  </p>
+                </Card>
+              )}
             </div>
           )}
         </div>

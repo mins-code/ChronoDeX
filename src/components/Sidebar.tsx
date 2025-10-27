@@ -93,7 +93,7 @@ export function Sidebar() {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25 }}
-              className="fixed left-0 top-0 bottom-0 w-64 p-4 backdrop-blur-xl bg-white/10 dark:bg-black/40 border-r border-white/20 dark:border-blue-500/30 z-40 md:hidden flex flex-col"
+              className="fixed left-0 top-0 bottom-0 w-64 p-4 backdrop-blur-xl bg-gradient-to-br from-purple-400/10 via-pink-300/10 to-blue-400/10 dark:from-gray-900 dark:via-blue-950 dark:to-black border-r border-white/20 dark:border-blue-500/30 z-40 md:hidden flex flex-col"
             >
               <SidebarContent />
             </motion.aside>
@@ -105,7 +105,7 @@ export function Sidebar() {
       <motion.aside
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="hidden md:flex md:flex-col w-64 p-4 backdrop-blur-xl bg-white/10 dark:bg-black/40 border-r border-white/20 dark:border-blue-500/30 transition-colors duration-300"
+        className="hidden md:flex md:flex-col w-64 p-4 backdrop-blur-xl bg-gradient-to-br from-purple-400/10 via-pink-300/10 to-blue-400/10 dark:from-gray-900 dark:via-blue-950 dark:to-black border-r border-white/20 dark:border-blue-500/30 transition-colors duration-300"
       >
         <SidebarContent />
       </motion.aside>
