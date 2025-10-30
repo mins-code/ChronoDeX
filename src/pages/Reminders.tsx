@@ -98,6 +98,9 @@ export default function Reminders() {
       recurrenceRule.dayOfWeek = formData.dayOfWeek;
     } else if (formData.frequency === "monthly") {
       recurrenceRule.dayOfMonth = formData.dayOfMonth;
+    } else if (formData.frequency === "yearly") {
+      recurrenceRule.dayOfWeek = formData.dayOfWeek; // month (0-11)
+      recurrenceRule.dayOfMonth = formData.dayOfMonth; // day of month
     }
 
     try {
