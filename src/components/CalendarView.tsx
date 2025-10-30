@@ -61,6 +61,10 @@ export function CalendarView() {
       if (rule.frequency === "daily") return true;
       if (rule.frequency === "weekly" && rule.dayOfWeek === date.getDay()) return true;
       if (rule.frequency === "monthly" && rule.dayOfMonth === date.getDate()) return true;
+      if (rule.frequency === "yearly" && rule.dayOfWeek !== undefined && rule.dayOfMonth !== undefined) {
+        // For yearly: dayOfWeek stores month (0-11), dayOfMonth stores day
+        return date.getMonth() === rule.dayOfWeek && date.getDate() === rule.dayOfMonth;
+      }
       return false;
     });
   };
