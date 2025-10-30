@@ -9,11 +9,18 @@ import * as admin from "firebase-admin";
 if (!admin.apps.length) {
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '{}');
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+    
+    // Check if service account is properly configured
+    if (!serviceAccount.project_id) {
+      console.error("⚠️ FIREBASE_SERVICE_ACCOUNT_JSON is not properly configured");
+    } else {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      console.log("✅ Firebase Admin initialized successfully for project:", serviceAccount.project_id);
+    }
   } catch (error) {
-    console.error("Failed to initialize Firebase Admin:", error);
+    console.error("❌ Failed to initialize Firebase Admin:", error);
   }
 }
 
@@ -29,13 +36,23 @@ export const sendPushNotification = internalAction({
     data: v.optional(v.any()),
   },
   handler: async (ctx, args): Promise<{ success: boolean; message?: string; tokenCount?: number; successCount?: number; failureCount?: number; error?: string }> => {
+    console.log("🔔 Attempting to send push notification to user:", args.userId);
+    
+    // Check if Firebase Admin is initialized
+    if (!admin.apps.length) {
+      console.error("❌ Firebase Admin not initialized");
+      return { success: false, error: "Firebase Admin not initialized" };
+    }
+
     // Get user's device tokens
     const tokens: Array<{ _id: any; userId: any; token: string; platform?: string; lastUpdated: number }> = await ctx.runQuery(internal.fcmHelpers.internalGetUserTokens, {
       userId: args.userId,
     });
 
+    console.log(`📱 Found ${tokens.length} device token(s) for user`);
+
     if (tokens.length === 0) {
-      console.log("No device tokens found for user:", args.userId);
+      console.log("⚠️ No device tokens found for user:", args.userId);
       return { success: false, message: "No device tokens registered" };
     }
 
@@ -49,15 +66,26 @@ export const sendPushNotification = internalAction({
     };
 
     try {
+      console.log("📤 Sending notification via Firebase...");
       const response = await admin.messaging().sendEachForMulticast(message);
-      console.log('Successfully sent notifications:', response.successCount);
+      console.log(`✅ Successfully sent notifications: ${response.successCount} success, ${response.failureCount} failed`);
+      
+      // Log any failures
+      if (response.failureCount > 0) {
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            console.error(`❌ Failed to send to token ${idx}:`, resp.error);
+          }
+        });
+      }
+      
       return { 
         success: true, 
         successCount: response.successCount,
         failureCount: response.failureCount 
       };
     } catch (error: any) {
-      console.error('Error sending notification:', error);
+      console.error('❌ Error sending notification:', error);
       return { success: false, error: error.message };
     }
   },
@@ -72,14 +100,19 @@ export const sendTaskNotification = internalAction({
     notificationId: v.id("notifications"),
   },
   handler: async (ctx, args): Promise<{ success: boolean; message?: string; tokenCount?: number }> => {
+    console.log("🔔 Sending task notification for task:", args.taskId);
+    
     // Get task details
     const task: any = await ctx.runQuery(internal.fcmHelpers.internalGetTask, {
       taskId: args.taskId,
     });
 
     if (!task) {
+      console.error("❌ Task not found:", args.taskId);
       return { success: false, message: "Task not found" };
     }
+
+    console.log(`📋 Task found: "${task.title}" for user:`, task.userId);
 
     // Send push notification
     return await ctx.runAction(internal.fcm.sendPushNotification, {

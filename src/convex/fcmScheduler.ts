@@ -10,17 +10,21 @@ export const checkAndSendNotifications = internalAction({
   handler: async (ctx): Promise<{ processed: number }> => {
     const now = Date.now();
     
+    console.log("⏰ Cron job: Checking for due notifications at", new Date(now).toISOString());
+    
     // Get all upcoming notifications that are due
     const notifications: Array<any> = await ctx.runQuery(
       internal.fcmScheduler.getDueNotifications,
       { currentTime: now }
     );
 
-    console.log(`Found ${notifications.length} due notifications to send`);
+    console.log(`📋 Found ${notifications.length} due notification(s) to send`);
 
     // Send push notification for each due notification
     for (const notification of notifications) {
       try {
+        console.log(`🔔 Processing notification ${notification._id} for task ${notification.taskId}`);
+        
         await ctx.runAction(internal.fcm.sendTaskNotification, {
           taskId: notification.taskId,
           notificationId: notification._id,
@@ -30,11 +34,14 @@ export const checkAndSendNotifications = internalAction({
         await ctx.runMutation(internal.fcmScheduler.markNotificationSent, {
           notificationId: notification._id,
         });
+        
+        console.log(`✅ Notification ${notification._id} sent and marked as sent`);
       } catch (error) {
-        console.error(`Error sending notification ${notification._id}:`, error);
+        console.error(`❌ Error sending notification ${notification._id}:`, error);
       }
     }
 
+    console.log(`✅ Cron job completed: ${notifications.length} notification(s) processed`);
     return { processed: notifications.length };
   },
 });

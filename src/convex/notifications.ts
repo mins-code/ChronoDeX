@@ -193,6 +193,8 @@ export const sendTestNotification = mutation({
       throw new Error("Task not found");
     }
 
+    console.log("🧪 Creating test notification for task:", task.title);
+
     // Create a test notification in the database
     const notificationId = await ctx.db.insert("notifications", {
       userId: user._id,
@@ -205,11 +207,15 @@ export const sendTestNotification = mutation({
       status: "sent",
     });
 
+    console.log("✅ Test notification created, scheduling push notification...");
+
     // Schedule the push notification to be sent immediately
     await ctx.scheduler.runAfter(0, internal.fcm.sendTaskNotification, {
       taskId: args.taskId,
       notificationId: notificationId,
     });
+
+    console.log("📤 Push notification scheduled");
 
     return notificationId;
   },
