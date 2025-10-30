@@ -14,10 +14,11 @@ export function CalendarView() {
 
   const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const endOfMonthEndOfDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999);
 
   const tasks = useQuery(api.tasks.listAllAccessible, {
     startDate: startOfMonth.getTime(),
-    endDate: endOfMonth.getTime(),
+    endDate: endOfMonthEndOfDay.getTime(),
   });
 
   const reminders = useQuery(api.reminders.listAllAccessible);
