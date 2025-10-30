@@ -19,9 +19,13 @@ import "./types/global.d.ts";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
-// Initialize dark mode from localStorage on app load
-if (localStorage.getItem("darkMode") === "true") {
+// Initialize dark mode from localStorage on app load (default to dark mode)
+const savedDarkMode = localStorage.getItem("darkMode");
+if (savedDarkMode === null || savedDarkMode === "true") {
   document.documentElement.classList.add("dark");
+  if (savedDarkMode === null) {
+    localStorage.setItem("darkMode", "true");
+  }
 }
 
 function RouteSyncer() {

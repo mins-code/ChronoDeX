@@ -28,8 +28,14 @@ export default function Settings() {
   // Initialize dark mode state from localStorage or default to true
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");
+    // Default to dark mode if no preference is saved
     const isDark = savedDarkMode === null ? true : savedDarkMode === "true";
     setDarkMode(isDark);
+    
+    // Save default preference if not set
+    if (savedDarkMode === null) {
+      localStorage.setItem("darkMode", "true");
+    }
     
     // Apply dark mode on initial load
     if (isDark) {
