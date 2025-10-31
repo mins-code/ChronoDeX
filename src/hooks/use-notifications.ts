@@ -19,25 +19,57 @@ export function useNotifications() {
 
   const enableNotifications = async () => {
     try {
+      console.log('🚀 Starting notification enablement process...');
       const token = await requestNotificationPermission();
       
       if (token) {
+        console.log('✅ Token received, registering with backend...');
         // Register token with backend
         await registerToken({
           token,
           platform: 'web'
         });
         
+        console.log('✅ Token registered successfully with backend');
         setPermission('granted');
-        toast.success('Push notifications enabled!');
+        toast.success('Push notifications enabled!', {
+          description: 'You will now receive browser notifications for task reminders.',
+          duration: 5000,
+        });
         return true;
       } else {
-        toast.error('Failed to enable notifications');
+        console.error('❌ No token received from Firebase');
+        toast.error('Failed to enable notifications', {
+          description: 'Could not obtain notification token. Check console for details.',
+          duration: 8000,
+        });
         return false;
       }
-    } catch (error) {
-      console.error('Error enabling notifications:', error);
-      toast.error('Failed to enable notifications');
+    } catch (error: any) {
+      console.error('❌ Error enabling notifications:', error);
+      
+      // Provide specific error messages based on the error
+      let errorMessage = 'Failed to enable notifications';
+      let errorDescription = 'Check the browser console for details.';
+      
+      if (error.message?.includes('VAPID')) {
+        errorMessage = 'Firebase VAPID key not configured';
+        errorDescription = 'Please add VITE_FIREBASE_VAPID_KEY to your environment variables in the Integrations tab.';
+      } else if (error.message?.includes('messaging not initialized')) {
+        errorMessage = 'Firebase not configured';
+        errorDescription = 'Please configure Firebase credentials in the Integrations tab.';
+      } else if (error.message?.includes('permission was denied')) {
+        errorMessage = 'Notification permission denied';
+        errorDescription = 'Please allow notifications in your browser settings and try again.';
+      } else if (error.code === 'messaging/token-subscribe-failed') {
+        errorMessage = 'Failed to subscribe to notifications';
+        errorDescription = 'Check your Firebase project settings and VAPID key configuration.';
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 10000,
+      });
       return false;
     }
   };

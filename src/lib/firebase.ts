@@ -31,26 +31,34 @@ try {
  */
 export const requestNotificationPermission = async (): Promise<string | null> => {
   try {
+    console.log('🔔 Starting notification permission request...');
+    
     if (!messaging) {
-      console.error('Firebase messaging not initialized');
-      return null;
+      console.error('❌ Firebase messaging not initialized');
+      throw new Error('Firebase messaging not initialized. Check your Firebase configuration.');
     }
 
+    console.log('✅ Firebase messaging is initialized');
+
     // Request permission
+    console.log('📋 Requesting notification permission...');
     const permission = await Notification.requestPermission();
+    console.log('📋 Permission result:', permission);
     
     if (permission === 'granted') {
-      console.log('Notification permission granted');
+      console.log('✅ Notification permission granted');
       
       // Register service worker with detailed error handling
-      console.log('Attempting to register service worker at: /firebase-messaging-sw.js');
+      console.log('🔧 Attempting to register service worker at: /firebase-messaging-sw.js');
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
         scope: '/'
       });
-      console.log('Service worker registered successfully:', registration);
+      console.log('✅ Service worker registered successfully:', registration);
       
       // Wait for service worker to be ready
+      console.log('⏳ Waiting for service worker to be ready...');
       await navigator.serviceWorker.ready;
+      console.log('✅ Service worker is ready');
       
       // Send Firebase config to service worker
       if (registration.active) {
@@ -58,29 +66,46 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
           type: 'FIREBASE_CONFIG',
           config: firebaseConfig
         });
-        console.log('Firebase config sent to service worker');
+        console.log('✅ Firebase config sent to service worker');
+      } else {
+        console.warn('⚠️ Service worker not active yet');
       }
       
+      // Check VAPID key
+      const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+      if (!vapidKey || vapidKey === 'YOUR_VAPID_KEY') {
+        console.error('❌ VAPID key not configured!');
+        throw new Error('VAPID key is missing. Please add VITE_FIREBASE_VAPID_KEY to your environment variables.');
+      }
+      console.log('✅ VAPID key is configured');
+      
       // Get FCM token
+      console.log('🔑 Requesting FCM token...');
       const token = await getToken(messaging, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'YOUR_VAPID_KEY',
+        vapidKey: vapidKey,
         serviceWorkerRegistration: registration
       });
       
-      console.log('FCM Token:', token);
+      if (!token) {
+        console.error('❌ Failed to get FCM token');
+        throw new Error('Failed to generate FCM token. Check your Firebase configuration and VAPID key.');
+      }
+      
+      console.log('✅ FCM Token obtained:', token.substring(0, 20) + '...');
       return token;
     } else {
-      console.log('Notification permission denied');
-      return null;
+      console.log('❌ Notification permission denied by user');
+      throw new Error('Notification permission was denied. Please allow notifications in your browser settings.');
     }
   } catch (error: any) {
-    console.error('Error getting notification permission:', error);
+    console.error('❌ Error getting notification permission:', error);
     console.error('Error details:', {
       message: error.message,
       name: error.name,
+      code: error.code,
       stack: error.stack
     });
-    return null;
+    throw error; // Re-throw to let the caller handle it
   }
 };
 
