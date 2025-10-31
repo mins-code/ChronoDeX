@@ -80,9 +80,18 @@ export default function Notifications() {
   const handleSendTest = async (taskId: Id<"tasks">) => {
     try {
       await sendTestNotification({ taskId });
-      toast.success("Test notification sent! Check your browser for the push notification.");
-    } catch (error) {
-      toast.error("Failed to send test notification");
+      toast.success("Test notification sent! Check your browser for the push notification.", {
+        description: "If you don't see it, check the Convex logs (Database tab → Logs) for details.",
+        duration: 8000,
+      });
+    } catch (error: any) {
+      const errorMessage = error?.message || "Failed to send test notification";
+      toast.error(errorMessage, {
+        description: errorMessage.includes("device tokens") 
+          ? "Go to Settings and click 'Enable Push Notifications' first."
+          : "Check the Convex logs for more details.",
+        duration: 8000,
+      });
       console.error("Test notification error:", error);
     }
   };

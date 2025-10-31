@@ -195,6 +195,18 @@ export const sendTestNotification = mutation({
 
     console.log("🧪 Creating test notification for task:", task.title);
 
+    // Check if user has device tokens registered
+    const tokens = await ctx.db
+      .query("deviceTokens")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    console.log(`📱 User has ${tokens.length} device token(s) registered`);
+
+    if (tokens.length === 0) {
+      throw new Error("No device tokens found. Please enable notifications in Settings first.");
+    }
+
     // Create a test notification in the database
     const notificationId = await ctx.db.insert("notifications", {
       userId: user._id,
