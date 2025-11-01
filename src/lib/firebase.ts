@@ -44,6 +44,22 @@ console.log('🔧 Firebase config status:', {
   appId: firebaseConfig.appId ? '✓ Set' : '✗ Missing'
 });
 
+// Debug: Log first few characters of API key to verify it's being read
+if (firebaseConfig.apiKey) {
+  console.log('🔑 API Key (first 10 chars):', firebaseConfig.apiKey.substring(0, 10) + '...');
+  console.log('🔑 API Key length:', firebaseConfig.apiKey.length);
+} else {
+  console.error('❌ CRITICAL: API Key is undefined or empty!');
+  console.error('❌ This means VITE_FIREBASE_API_KEY was not set during the Vercel build process');
+}
+
+// Log project ID to verify correct Firebase project
+if (firebaseConfig.projectId) {
+  console.log('📦 Firebase Project ID:', firebaseConfig.projectId);
+} else {
+  console.error('❌ CRITICAL: Project ID is undefined!');
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
