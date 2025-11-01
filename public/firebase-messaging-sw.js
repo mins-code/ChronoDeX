@@ -11,27 +11,44 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'FIREBASE_CONFIG') {
     console.log('Service worker received Firebase config');
     
-    if (!firebaseApp) {
-      firebaseApp = firebase.initializeApp(event.data.config);
-      messaging = firebase.messaging();
-      
-      // Handle background messages
-      messaging.onBackgroundMessage((payload) => {
-        console.log('Received background message:', payload);
-        
-        const notificationTitle = payload.notification?.title || 'ChronoDeX Reminder';
-        const notificationOptions = {
-          body: payload.notification?.body || 'You have a task reminder',
-          icon: '/logo.png',
-          badge: '/logo.png',
-          tag: payload.data?.notificationId || 'default',
-          data: payload.data,
-          requireInteraction: true,
-          vibrate: [200, 100, 200]
-        };
-
-        return self.registration.showNotification(notificationTitle, notificationOptions);
+    // Validate the config
+    const config = event.data.config;
+    if (!config.apiKey || !config.projectId || !config.messagingSenderId || !config.appId) {
+      console.error('❌ Invalid Firebase config received in service worker:', {
+        hasApiKey: !!config.apiKey,
+        hasProjectId: !!config.projectId,
+        hasMessagingSenderId: !!config.messagingSenderId,
+        hasAppId: !!config.appId
       });
+      return;
+    }
+    
+    if (!firebaseApp) {
+      try {
+        firebaseApp = firebase.initializeApp(config);
+        messaging = firebase.messaging();
+        console.log('✅ Firebase initialized in service worker');
+        
+        // Handle background messages
+        messaging.onBackgroundMessage((payload) => {
+          console.log('Received background message:', payload);
+          
+          const notificationTitle = payload.notification?.title || 'ChronoDeX Reminder';
+          const notificationOptions = {
+            body: payload.notification?.body || 'You have a task reminder',
+            icon: '/logo.png',
+            badge: '/logo.png',
+            tag: payload.data?.notificationId || 'default',
+            data: payload.data,
+            requireInteraction: true,
+            vibrate: [200, 100, 200]
+          };
+
+          return self.registration.showNotification(notificationTitle, notificationOptions);
+        });
+      } catch (error) {
+        console.error('❌ Error initializing Firebase in service worker:', error);
+      }
     }
   }
 });

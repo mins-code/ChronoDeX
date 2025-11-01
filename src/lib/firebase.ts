@@ -1,16 +1,48 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, type Messaging } from 'firebase/messaging';
 
-// Firebase configuration
-// Note: Replace these with your actual Firebase config values
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_API_KEY",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "YOUR_AUTH_DOMAIN",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "YOUR_STORAGE_BUCKET",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_APP_ID"
+// Validate that all required Firebase environment variables are set
+const requiredEnvVars = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
+
+// Check if any required variables are missing
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([_, value]) => !value || value === '')
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing Firebase environment variables:', missingVars);
+  console.error('Please set the following in your Vercel environment variables:');
+  missingVars.forEach(varName => {
+    console.error(`  - VITE_FIREBASE_${varName.replace(/([A-Z])/g, '_$1').toUpperCase()}`);
+  });
+}
+
+// Firebase configuration - using environment variables directly
+const firebaseConfig = {
+  apiKey: requiredEnvVars.apiKey,
+  authDomain: requiredEnvVars.authDomain,
+  projectId: requiredEnvVars.projectId,
+  storageBucket: requiredEnvVars.storageBucket,
+  messagingSenderId: requiredEnvVars.messagingSenderId,
+  appId: requiredEnvVars.appId
+};
+
+// Log config status (without exposing sensitive values)
+console.log('🔧 Firebase config status:', {
+  apiKey: firebaseConfig.apiKey ? '✓ Set' : '✗ Missing',
+  authDomain: firebaseConfig.authDomain ? '✓ Set' : '✗ Missing',
+  projectId: firebaseConfig.projectId ? '✓ Set' : '✗ Missing',
+  storageBucket: firebaseConfig.storageBucket ? '✓ Set' : '✗ Missing',
+  messagingSenderId: firebaseConfig.messagingSenderId ? '✓ Set' : '✗ Missing',
+  appId: firebaseConfig.appId ? '✓ Set' : '✗ Missing'
+});
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -32,6 +64,11 @@ try {
 export const requestNotificationPermission = async (): Promise<string | null> => {
   try {
     console.log('🔔 Starting notification permission request...');
+    
+    // Validate Firebase config before proceeding
+    if (missingVars.length > 0) {
+      throw new Error(`Firebase not configured. Missing: ${missingVars.join(', ')}. Please add these environment variables in Vercel.`);
+    }
     
     if (!messaging) {
       console.error('❌ Firebase messaging not initialized');
@@ -73,9 +110,9 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
       
       // Check VAPID key
       const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-      if (!vapidKey || vapidKey === 'YOUR_VAPID_KEY') {
+      if (!vapidKey || vapidKey === '') {
         console.error('❌ VAPID key not configured!');
-        throw new Error('VAPID key is missing. Please add VITE_FIREBASE_VAPID_KEY to your environment variables.');
+        throw new Error('VAPID key is missing. Please add VITE_FIREBASE_VAPID_KEY to your Vercel environment variables.');
       }
       console.log('✅ VAPID key is configured');
       
