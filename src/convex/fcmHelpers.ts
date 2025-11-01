@@ -11,8 +11,15 @@ export const registerDeviceToken = mutation({
     platform: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    console.log('🔐 registerDeviceToken called');
     const user = await getCurrentUser(ctx);
-    if (!user) throw new Error("Unauthorized");
+    if (!user) {
+      console.error('❌ No user found - unauthorized');
+      throw new Error("Unauthorized");
+    }
+    
+    console.log('✅ User authenticated:', user._id);
+    console.log('📝 Registering token (first 20 chars):', args.token.substring(0, 20) + '...');
 
     // Check if token already exists for this user
     const existingToken = await ctx.db
@@ -21,21 +28,26 @@ export const registerDeviceToken = mutation({
       .first();
 
     if (existingToken) {
+      console.log('🔄 Token already exists, updating...');
       // Update existing token
       await ctx.db.patch(existingToken._id, {
         lastUpdated: Date.now(),
         platform: args.platform,
       });
+      console.log('✅ Token updated successfully:', existingToken._id);
       return existingToken._id;
     }
 
     // Create new token
-    return await ctx.db.insert("deviceTokens", {
+    console.log('➕ Creating new token entry...');
+    const tokenId = await ctx.db.insert("deviceTokens", {
       userId: user._id,
       token: args.token,
       platform: args.platform,
       lastUpdated: Date.now(),
     });
+    console.log('✅ Token created successfully:', tokenId);
+    return tokenId;
   },
 });
 

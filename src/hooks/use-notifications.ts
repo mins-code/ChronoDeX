@@ -24,13 +24,21 @@ export function useNotifications() {
       
       if (token) {
         console.log('✅ Token received, registering with backend...');
-        // Register token with backend
-        await registerToken({
-          token,
-          platform: 'web'
-        });
+        console.log('📝 Token (first 20 chars):', token.substring(0, 20) + '...');
         
-        console.log('✅ Token registered successfully with backend');
+        // Register token with backend
+        try {
+          const result = await registerToken({
+            token,
+            platform: 'web'
+          });
+          console.log('✅ Token registered successfully with backend. Token ID:', result);
+        } catch (registerError: any) {
+          console.error('❌ Failed to register token with backend:', registerError);
+          throw new Error(`Token registration failed: ${registerError.message}`);
+        }
+        
+        console.log('✅ Token registration complete');
         setPermission('granted');
         toast.success('Push notifications enabled!', {
           description: 'You will now receive browser notifications for task reminders.',
@@ -47,6 +55,7 @@ export function useNotifications() {
       }
     } catch (error: any) {
       console.error('❌ Error enabling notifications:', error);
+      console.error('❌ Error stack:', error.stack);
       
       // Provide specific error messages based on the error
       let errorMessage = 'Failed to enable notifications';
