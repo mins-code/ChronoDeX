@@ -20,6 +20,17 @@ export function useNotifications() {
   const enableNotifications = async () => {
     try {
       console.log('🚀 Starting notification enablement process...');
+      
+      // Check if we're on mobile
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        console.warn('⚠️ Mobile device detected - web push notifications have limited support on mobile browsers');
+        toast.warning('Mobile Browser Detected', {
+          description: 'Web push notifications have limited support on mobile browsers. For best results, use a desktop browser (Chrome, Firefox, or Edge).',
+          duration: 8000,
+        });
+      }
+      
       const token = await requestNotificationPermission();
       
       if (token) {
@@ -28,13 +39,30 @@ export function useNotifications() {
         
         // Register token with backend
         try {
+          console.log('🔄 Calling registerToken mutation...');
+          
+          // Add a small delay to ensure auth is fully initialized
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           const result = await registerToken({
             token,
-            platform: 'web'
+            platform: isMobile ? 'mobile-web' : 'web'
           });
           console.log('✅ Token registered successfully with backend. Token ID:', result);
+          console.log('✅ Mutation returned successfully');
         } catch (registerError: any) {
           console.error('❌ Failed to register token with backend:', registerError);
+          console.error('❌ Error details:', {
+            message: registerError.message,
+            name: registerError.name,
+            stack: registerError.stack
+          });
+          
+          // Check for specific authentication errors
+          if (registerError.message?.includes('Unauthorized') || registerError.message?.includes('unauthenticated')) {
+            throw new Error('Authentication required. Please refresh the page and try again.');
+          }
+          
           throw new Error(`Token registration failed: ${registerError.message}`);
         }
         
@@ -56,6 +84,7 @@ export function useNotifications() {
     } catch (error: any) {
       console.error('❌ Error enabling notifications:', error);
       console.error('❌ Error stack:', error.stack);
+      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
       
       // Provide specific error messages based on the error
       let errorMessage = 'Failed to enable notifications';
@@ -73,6 +102,15 @@ export function useNotifications() {
       } else if (error.code === 'messaging/token-subscribe-failed') {
         errorMessage = 'Failed to subscribe to notifications';
         errorDescription = 'Check your Firebase project settings and VAPID key configuration.';
+      } else if (error.message?.includes('Token registration failed')) {
+        errorMessage = 'Failed to save notification token';
+        errorDescription = 'The token was obtained but could not be saved. Check if you are logged in and try again.';
+      } else if (error.message?.includes('Authentication required') || error.message?.includes('Unauthorized')) {
+        errorMessage = 'Authentication Error';
+        errorDescription = 'Please refresh the page and make sure you are logged in before enabling notifications.';
+      } else if (error.message?.includes('Failed to fetch')) {
+        errorMessage = 'Network Error';
+        errorDescription = 'Could not connect to the server. Check your internet connection and try again. If on mobile, try using a desktop browser instead.';
       }
       
       toast.error(errorMessage, {

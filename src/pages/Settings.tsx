@@ -135,11 +135,20 @@ export default function Settings() {
                       ⚠️ Push notifications are not supported
                     </p>
                     <p className="text-white/70 text-xs">
-                      Your browser doesn't support push notifications. Try using Chrome, Firefox, or Edge.
+                      Your browser doesn't support push notifications. Try using Chrome, Firefox, or Edge on a desktop computer.
                     </p>
                   </div>
                 ) : (
                   <>
+                    <div className="p-4 rounded-lg bg-blue-500/20 border border-blue-500/30">
+                      <p className="text-white/90 text-sm font-semibold mb-2">
+                        💡 Best Experience on Desktop
+                      </p>
+                      <p className="text-white/70 text-xs">
+                        Web push notifications work best on desktop browsers (Chrome, Firefox, Edge). Mobile browsers have limited support, especially on iOS.
+                      </p>
+                    </div>
+                    
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-white font-medium">Browser Notifications</p>
@@ -177,7 +186,8 @@ export default function Settings() {
                     {permission !== 'granted' && permission !== 'denied' && (
                       <Button
                         onClick={enableNotifications}
-                        className="bg-white/20 hover:bg-white/30 text-white dark:bg-blue-500/30 dark:hover:bg-blue-500/40"
+                        disabled={!isAuthenticated}
+                        className="bg-white/20 hover:bg-white/30 text-white dark:bg-blue-500/30 dark:hover:bg-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         🔔 Enable Push Notifications
                       </Button>

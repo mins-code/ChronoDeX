@@ -12,42 +12,60 @@ export const registerDeviceToken = mutation({
   },
   handler: async (ctx, args) => {
     console.log('🔐 registerDeviceToken called');
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      console.error('❌ No user found - unauthorized');
-      throw new Error("Unauthorized");
-    }
+    console.log('📝 Token length:', args.token.length);
+    console.log('📝 Platform:', args.platform);
     
-    console.log('✅ User authenticated:', user._id);
-    console.log('📝 Registering token (first 20 chars):', args.token.substring(0, 20) + '...');
+    try {
+      const user = await getCurrentUser(ctx);
+      if (!user) {
+        console.error('❌ No user found - unauthorized');
+        console.error('❌ getCurrentUser returned:', user);
+        throw new Error("Unauthorized - user not authenticated");
+      }
+      
+      console.log('✅ User authenticated:', user._id);
+      console.log('📝 Registering token (first 20 chars):', args.token.substring(0, 20) + '...');
 
-    // Check if token already exists for this user
-    const existingToken = await ctx.db
-      .query("deviceTokens")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
-      .first();
+      // Check if token already exists for this user
+      console.log('🔍 Checking for existing token...');
+      const existingToken = await ctx.db
+        .query("deviceTokens")
+        .withIndex("by_token", (q) => q.eq("token", args.token))
+        .first();
 
-    if (existingToken) {
-      console.log('🔄 Token already exists, updating...');
-      // Update existing token
-      await ctx.db.patch(existingToken._id, {
-        lastUpdated: Date.now(),
+      if (existingToken) {
+        console.log('🔄 Token already exists, updating...');
+        console.log('🔄 Existing token ID:', existingToken._id);
+        // Update existing token
+        await ctx.db.patch(existingToken._id, {
+          lastUpdated: Date.now(),
+          platform: args.platform,
+        });
+        console.log('✅ Token updated successfully:', existingToken._id);
+        return existingToken._id;
+      }
+
+      // Create new token
+      console.log('➕ Creating new token entry...');
+      const tokenId = await ctx.db.insert("deviceTokens", {
+        userId: user._id,
+        token: args.token,
         platform: args.platform,
+        lastUpdated: Date.now(),
       });
-      console.log('✅ Token updated successfully:', existingToken._id);
-      return existingToken._id;
+      console.log('✅ Token created successfully:', tokenId);
+      
+      // Verify the token was saved
+      const savedToken = await ctx.db.get(tokenId);
+      console.log('✅ Verified token in database:', savedToken ? 'YES' : 'NO');
+      
+      return tokenId;
+    } catch (error: any) {
+      console.error('❌ Error in registerDeviceToken:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      throw error;
     }
-
-    // Create new token
-    console.log('➕ Creating new token entry...');
-    const tokenId = await ctx.db.insert("deviceTokens", {
-      userId: user._id,
-      token: args.token,
-      platform: args.platform,
-      lastUpdated: Date.now(),
-    });
-    console.log('✅ Token created successfully:', tokenId);
-    return tokenId;
   },
 });
 
